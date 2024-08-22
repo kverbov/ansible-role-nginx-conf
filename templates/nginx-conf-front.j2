@@ -1,0 +1,198 @@
+server {
+    listen 80;
+    server_name "{{ nginx_config_servername_front }} www.{{ nginx_config_servername_front }}";
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name "{{ nginx_config_servername_front }} www.{{ nginx_config_servername_front }}";
+    access_log "{{ nginx_config_log }}/{{nginx_config_servername_front }}.access.log combined_json";
+    error_log  "{{ nginx_config_log }}/{{nginx_config_servername_front }}.error.log error";
+    index index.php index.html;
+    root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/public_html" ;
+    ssl_certificate "{{ nginx_config_ssl_certificate }}/{{ nginx_config_ssl_cert }}";
+    ssl_certificate_key "{{ nginx_config_ssl_certificate }}/{{ nginx_config_ssl_key }}";
+    ssl_protocols    TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 3;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types application/atom+xml
+            application/geo+json
+            application/javascript
+            application/x-javascript
+            application/json
+            application/ld+json
+            application/manifest+json
+            application/rdf+xml
+            application/rss+xml
+            application/xhtml+xml
+            application/xml
+            font/eot
+            font/otf
+            font/ttf
+            image/svg+xml
+            text/css
+            text/javascript
+            text/plain
+            text/xml;
+gzip_disable "MSIE [1-6]\.";
+
+        location /api/nginx_status {
+            stub_status;
+            allow 10.1.1.11;
+            allow 10.1.2.22;
+            allow 10.1.3.33;
+            allow 10.1.4.44;
+            deny all;
+        }
+
+        location /api/integration {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_1;
+                try_files $uri $uri/ /api/index.php?$args;
+        }
+
+        location /api/call-center-integration {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_2;
+                try_files $uri $uri/ /api/index.php?$args;
+        }
+
+        location /api/call-center-dynamic-integration {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_3;
+                try_files $uri $uri/ /api/index.php?$args;
+        }
+
+        location /api/front-mobile {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_4;
+                try_files $uri /api/index.php?$args;
+        }
+
+        location /front-crm {
+                try_files $uri $uri/ /front-crm/index.php?$args;
+        }
+
+        location /site {
+                try_files $uri /index.php?$args;
+        }
+
+
+        location /rest {
+                try_files $uri /index.php?$args;
+        }
+
+        location /file-storage {
+                try_files $uri /index.php?$args;
+        }
+
+        location ~ ^/front-crm/(assets|bundle|css|fonts|icons|img|js)/ {
+                expires 2d;
+                add_header Cache-Control private;
+                try_files $uri $uri/ =404;
+        }
+
+
+        location /api {
+                try_files $uri /api/index.php?$args;
+        }
+
+        location /backend {
+                try_files $uri $uri/ /backend/index.php?$args;
+        }
+
+        location /.well-known/ {
+             alias "{{ nginx_config_base_root }}/well-known/";
+             default_type application/json;
+        }
+
+        location = / {
+                try_files $uri /index.php?$args;
+        }
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+
+
+        location /storage {
+                alias "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/storage/web";
+        }
+
+    error_page 400 /400.html;
+    location = /400.html {
+        root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/document_errors";
+        internal;
+    }
+
+    error_page 401 /401.html;
+    location = /401.html {
+        root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/document_errors";
+        
+        internal;
+    }
+
+    error_page 403 /403.html;
+    location = /403.html {
+        root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/document_errors";
+        internal;
+    }
+
+    error_page 404 /404.html;
+    location = /404.html {
+        root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/document_errors";
+           internal;
+    }
+
+    error_page 409 /409.html;
+    location = /409.html {
+        root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/document_errors";
+        
+        internal;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root "{{ nginx_config_base_root }}/{{ nginx_config_servername_front }}/document_errors";
+        
+        internal;
+    }
+
+
+        location ~ \.php(/|$) {
+                fastcgi_pass unix:/run/php/php7.1-fpm.sock;
+                fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+                fastcgi_index index.php;
+                include fastcgi_params;
+        }
+
+    location ~* /storage/(ads|calls|feed|feed-error|feed-old|feed_old_crm|feed_old_crm_processed|feed_status_error|feed_status_old|pdf|pdf-client|pdf_temp|photo|releases|source|source/user_avatar|source/1|watermark)/.*\.(php|php.*|pl|py|jsp|asp|sh|cgi)$ {
+       deny all;
+    }
+
+        location ~ \.htaccess {
+                deny all;
+        }
+
+
+    location ~ /\.ht    {return 404;}
+    location ~ /\.svn/  {return 404;}
+    location ~ /\.git/  {return 404;}
+    location ~ /\.hg/   {return 404;}
+    location ~ /\.bzr/  {return 404;}
+
+    location ~ /\.env {
+    deny all;
+}
+
+}
+

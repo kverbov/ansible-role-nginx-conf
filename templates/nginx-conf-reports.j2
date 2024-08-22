@@ -1,0 +1,112 @@
+server {
+    listen 80;
+    server_name "{{ nginx_config_servername_report }} www.{{ nginx_config_servername_report }}";
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 443 ssl;
+    server_name "{{ nginx_config_servername_report }} www.{{ nginx_config_servername_report }}";
+    access_log "{{ nginx_config_log }}/{{nginx_config_servername_report }}.access.log combined_json";
+    error_log  "{{ nginx_config_log }}/{{nginx_config_servername_report }}.error.log error";
+        index index.php index.html;
+    root "{{ nginx_config_base_root }}/{{ nginx_config_servername_report }}/public_html" ;
+    ssl_certificate "{{ nginx_config_ssl_certificate }}/{{ nginx_config_ssl_cert }}";
+    ssl_certificate_key "{{ nginx_config_ssl_certificate }}/{{ nginx_config_ssl_key }}";
+    ssl_protocols    TLSv1 TLSv1.1 TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+        location ~* ^.+\.(jpeg|jpg|png|gif|bmp|ico|svg|tif|tiff|css|js|htm|html|ttf|otf|webp|woff|txt|csv|rtf|doc|docx|xls|xlsx|ppt|pptx|odf|odp|ods|odt|pdf|psd|ai|eot|eps|ps|zip|tar|tgz|gz|rar|bz2|7z|aac|m4a|mp3|mp4|ogg|wav|wma|3gp|avi|flv|m4v|mkv|mov|mpeg|mpg|wmv|exe|iso|dmg|swf)$ {
+            root "{{ nginx_config_base_root }}/{{ nginx_config_servername_report }}/public_html" ;
+            expires        max;
+            try_files      $uri @fallback;
+        }
+
+        location /api/integration {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_1;
+                try_files $uri $uri/ /api/index.php?$args;
+        }
+
+        location /api/call-center-integration {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_2;
+                try_files $uri $uri/ /api/index.php?$args;
+        }
+
+        location /api/call-center-dynamic-integration {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_3;
+                try_files $uri $uri/ /api/index.php?$args;
+        }
+
+        location /api/front-mobile {
+                auth_basic "Password Protected Area";
+                auth_basic_user_file /etc/nginx/.htpasswd_4;
+                try_files $uri /api/index.php?$args;
+        }
+
+        location /front-crm {
+                try_files $uri $uri/ /front-crm/index.php?$args;
+#       rewrite ^([^.\?]*[^/])$ $1/ permanent;
+        }
+
+#       location /api/call-center {
+#               try_files $uri $uri/ /call-center/selection/search/index.php?$args;
+##       rewrite ^([^.\?]*[^/])$ $1/ permanent;
+#       }
+
+
+        location /api {
+                try_files $uri /api/index.php?$args;
+        }
+
+        location /backend {
+                try_files $uri $uri/ /backend/index.php?$args;
+#       rewrite ^([^.\?]*[^/])$ $1/ permanent;
+        }
+
+        location /.well-known/ {
+             alias "{{ nginx_config_base_root }}/well-known/";
+             default_type application/json;
+        }
+
+        location / {
+                try_files $uri /index.php?$args;
+        }
+
+        location /storage {
+                try_files  $uri /storage/index.php?$args;
+        }
+
+
+    location /error/ {                
+        alias   "{{ nginx_config_base_root }}/{{ nginx_config_servername_report }}/document_errors";
+    }
+
+        location ~ \.php(/|$) {
+                fastcgi_pass  unix:/run/php/php7.1-fpm.sock;
+                include snippets/fastcgi-php.conf;
+                include fastcgi_params;
+        }
+
+    location @fallback {
+#        proxy_pass      http://localhost:8080;
+    }
+
+        location ~ \.htaccess {
+                deny all;
+        }
+
+    location ~ /\.ht    {return 404;}
+    location ~ /\.svn/  {return 404;}
+    location ~ /\.git/  {return 404;}
+    location ~ /\.hg/   {return 404;}
+    location ~ /\.bzr/  {return 404;}
+
+    location ~ /\.env {
+    deny all;
+}
+
+}

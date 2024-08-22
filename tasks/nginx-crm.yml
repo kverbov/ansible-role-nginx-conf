@@ -1,0 +1,32 @@
+---
+# tasks file for roles/nginx-crm additional config
+
+- name: nginx | front config
+  become: true
+  template:
+    src: nginx-conf-front.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_config_servername_front }}.conf"
+    mode: 0644
+    owner: "{{ nginx_config_user_owner }}"
+ # notify:
+ #   - restart nginx
+
+- name: nginx | back config
+  become: true
+  template:
+    src: nginx-conf-back.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_config_servername_back }}.conf"
+    mode: 0644
+    owner: "{{ nginx_config_user_owner }}"
+#  notify:
+#    - restart nginx
+
+- name: nginx | report config
+  become: true
+  template:
+    src: nginx-conf-report.j2
+    dest: "/etc/nginx/sites-available/{{ nginx_config_servername_report }}.conf"
+    mode: 0644
+    owner: "{{ nginx_config_user_owner }}"
+  notify:
+    - restart nginx
